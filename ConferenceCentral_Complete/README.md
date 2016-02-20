@@ -13,16 +13,16 @@ App Engine based Conference application
    'app.yaml' to the application ID created in step 1.
 4. In Developer Console, create credentials. Update CLIENT_ID in 'settings.py'
    and 'static/js/app.js'.
-5. In the launcher, run the application locally[3] or deploy to visit online[4].
-6. (optional)Access API explorer[5]
+5. In the launcher, run the application locally at http://localhost:8080
+   (or what's specified in the launcher) or deploy to visit online at
+   https://{application_ID}.appspot.com
+6. (optional)Access API explorer at http://localhost:8080/_ah/api/explorer.
 
 
 
 [1]: https://console.developers.google.com
 [2]: https://cloud.google.com/appengine/downloads
-[3]: http://localhost:8080 (or what's specified in the launcher)
-[4]: https://{application_ID}.appspot.com
-[5]: {application_address}/_ah/api/explorer
+
 
 
 ## Task1
