@@ -14,6 +14,7 @@ __author__ = 'wesc+api@google.com (Wesley Chun)'
 
 
 from datetime import datetime
+from datetime import time
 
 import endpoints
 from protorpc import messages
@@ -84,6 +85,9 @@ FIELDS =    {
             'TOPIC': 'topics',
             'MONTH': 'month',
             'MAX_ATTENDEES': 'maxAttendees',
+            'DURATION': 'duration',
+            'TYPEOFSESSION': 'typeOfSession',
+            'SPEAKER':'speaker'
             }
 
 CONF_GET_REQUEST = endpoints.ResourceContainer(
@@ -112,6 +116,19 @@ WISHLIST_GET_REQUEST = endpoints.ResourceContainer(
     message_types.VoidMessage,
     websafeSessionKey=messages.StringField(1),
 )
+
+DURATION_SESSION_GET_REQUEST = endpoints.ResourceContainer(
+    message_types.VoidMessage,
+    lower=messages.StringField(1),
+    upper=messages.StringField(2)
+)
+
+HIGHLIGHT_SESSION_GET_REQUEST = endpoints.ResourceContainer(
+    message_types.VoidMessage,
+    highlight=messages.StringField(1, repeated=True)
+)
+
+
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
@@ -585,7 +602,9 @@ class ConferenceApi(remote.Service):
         sf = SessionForm()
         for field in sf.all_fields():
             if(hasattr(ses, field.name)):
-                if field.name.endswith('Date'):
+                if field.name.endswith('date'):
+                    setattr(sf, field.name, str(getattr(ses, field.name)))
+                elif field.name.endswith('Time'):
                     setattr(sf, field.name, str(getattr(ses, field.name)))
                 else:
                     setattr(sf, field.name, getattr(ses, field.name))
@@ -640,6 +659,8 @@ class ConferenceApi(remote.Service):
             data['date'] = datetime.strptime(data['date'][:10], "%Y-%m-%d").date()
             #setattr(session, 'date', data['date'])
 
+        if data['startTime']:
+            data['startTime'] = datetime.strptime(data['startTime'][:5], "%H:%M").time()
 
         data['key'] = s_key
         data['websafeConferenceKey'] = request.websafeConferenceKey
@@ -735,6 +756,43 @@ class ConferenceApi(remote.Service):
             items=[self._copySessionToForm(ses) for ses in sessions]
         )
 
+    # session queries
+
+    def _getSessionQuery(self, request):
+        """Return formatted query from the submitted filters."""
+        q = Session.query()
+        inequality_filter, filters = self._formatFilters(request.filters)
+
+        # If exists, sort on inequality filter first
+        if not inequality_filter:
+            q = q.order(Session.name)
+        else:
+            q = q.order(ndb.GenericProperty(inequality_filter))
+            q = q.order(Session.name)
+
+        for filtr in filters:
+            if filtr["field"] == "duration":
+                filtr["value"] = int(filtr["value"])
+            elif filtr["field"] == "startTime":
+                filtr["value"] = datetime.strptime(filtr["value"][:5], "%H:%M").time()
+            formatted_query = ndb.query.FilterNode(filtr["field"], filtr["operator"], filtr["value"])
+            q = q.filter(formatted_query)
+        return q
+
+    @endpoints.method(SessionQueryForms, SessionForms,
+            path='querySessions',
+            http_method='POST',
+            name='querySessions')
+    def querySessions(self, request):
+        """Query for Sessions."""
+        sessions = self._getSessionQuery(request)
+
+        # return individual SessionForm object per Session
+        return SessionForms(
+                items=[self._copySessionToForm(ses) for ses in sessions]
+        )
+
+
     # Wishlist functions
 
     def _wishlistHandling(self, request, add=True):
@@ -793,7 +851,7 @@ class ConferenceApi(remote.Service):
             http_method='GET', name='getSessionsInWishlist')
     def getSessionsInWishlist(self, request):
         """Get all sessions in user's wishlist"""
-        
+
         prof = self._getProfileFromUser()
         ses_keys = [ndb.Key(urlsafe=wssk) for wssk in prof.sessionKeysWishlist]
         sessions = ndb.get_multi(ses_keys)
@@ -801,5 +859,39 @@ class ConferenceApi(remote.Service):
         return SessionForms(
             items=[self._copySessionToForm(ses) for ses in sessions]
         )
+
+
+    @endpoints.method(DURATION_SESSION_GET_REQUEST, SessionForms,
+            path='getSessionsByDuration',
+            http_method='GET',name='getSessionsByDuration')
+    def getSessionsByDuration(self, request):
+        """Given a lower bound and a upper bound, return all sessions
+           with duration within the range"""
+
+        sessions = Session.query().\
+                          filter(Session.duration <= int(request.upper)).\
+                          filter(Session.duration >= int(request.lower))
+
+        return SessionForms(
+            items=[self._copySessionToForm(ses) for ses in sessions]
+        )
+
+    @endpoints.method(HIGHLIGHT_SESSION_GET_REQUEST, SessionForms,
+            path='getSessionsByHighlight',
+            http_method='GET',name='getSessionsByHighlight')
+    def getSessionsByHighlight(self, request):
+        """Given one or more highlights, return all sessions that contains
+           all the highlights"""
+
+        # highlights = []
+        highlights = request.highlight
+        sessions = Session.query()
+        for hl in highlights:
+            sessions = sessions.filter(Session.highlight == hl)
+
+        return SessionForms(
+            items=[self._copySessionToForm(ses) for ses in sessions]
+        )
+
 
 api = endpoints.api_server([ConferenceApi]) # register API
