@@ -24,26 +24,28 @@ App Engine based Conference application
 [4]: https://{application_ID}.appspot.com
 [5]: {application_address}/_ah/api/explorer
 
-Answers
-Task1: Sessions are implemented as Session objects and have SessionForm for
-       input/output. Session objects have websafeConferenceKey property. When
-       a session is created, the websafeConferenceKey is entered as parent. That
-       makes it easy to get all sessions in a conference.
 
-       Speakers are implemented as a string property in Session object. So each
-       session has the name of the speaker, which can be used for querying
-       a session.
+## Task1
+Sessions are implemented as Session objects and have SessionForm for
+input/output. Session objects have websafeConferenceKey property. When
+a session is created, the websafeConferenceKey is entered as parent. That
+makes it easy to get all sessions in a conference.
 
-Task3: getSessionsByDuration allows user to provide lower bound and upper bound
-       of duration and get all sessions with durations within that range.
+Speakers are implemented as a string property in Session object. So each
+session has the name of the speaker, which can be used for querying
+a session.
 
-       getSessionsByHighlight allows user to provide one or more highlights that
-       he/she is interested in, and get a list of sessions that cover those
-       highlights.
+## Task3
+getSessionsByDuration allows user to provide lower bound and upper bound
+of duration and get all sessions with durations within that range.
 
-       querySessions allows user to query sessions combining different fields.
+getSessionsByHighlight allows user to provide one or more highlights that
+he/she is interested in, and get a list of sessions that cover those
+highlights.
 
-       Query problem: In order to achieve this function, a query that supports
-       multiple multiple filters should be implemented. StartTime and typeOfSession
-       should be included in the supported filters. So we can query sessions
-       with startTime less than 19:00 and typeOfSession not equal to workshop.
+querySessions allows user to query sessions combining different fields.
+
+Query problem: In order to achieve this function, a query that supports
+multiple multiple filters should be implemented. StartTime and typeOfSession
+should be included in the supported filters. So we can query sessions
+with startTime less than 19:00 and typeOfSession not equal to workshop.
